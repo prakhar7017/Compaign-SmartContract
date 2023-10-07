@@ -59,6 +59,14 @@ function createRequest(string memory description,uint value,address payable vend
 
 }
 
+function acceptVote(uint index) public {
+    Request storage request=requests[index];
+    require(isContributers[msg.sender]);
+    require(!request.yesVoters[msg.sender]);
+    request.yesVoters[msg.sender]=true;
+    request.yesVoterCount++;
+}
+
 
 
 
