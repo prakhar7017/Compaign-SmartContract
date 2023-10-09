@@ -57,5 +57,39 @@ describe("Campaign",()=>{
         assert(isContributer);
     })
 
+    it("requires a minimum contribution",async()=>{
+        try {
+            await compaign.methods.contribute().send({
+                value:'50',
+                from:accounts[1],
+            })
+            assert(false);
+        } catch (error) {
+            assert(error);
+        }
+    })
+
+    it("allows a manager to make a payment request",async()=>{
+        await compaign.methods.createRequest("buy iron",'100',accounts[1]).send({
+            from:accounts[0],
+            gas:'1000000'
+        })
+
+        const request=await compaign.methods.requests(0).call();
+        assert.equal(request.vendor,accounts[1]);
+    })
+
+    it("doest not allow a non-manager to make a payment request",async()=>{
+        try {
+            await compaign.methods.createRequest("buy iron",'100',accounts[1]).send({
+                from:accounts[1],
+                gas:'1000000'
+            })
+            assert(false);
+        } catch (error) {
+            assert(error);
+        }
+    })
+
 });
 
