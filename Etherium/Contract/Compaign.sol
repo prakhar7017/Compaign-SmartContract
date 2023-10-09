@@ -1,78 +1,79 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity ^0.4.17;
 
-contract FactoryCompaign {
-    address[] public deployedCompaigns;
+contract CampaignFactory {
+    address[] public deployedCampaigns;
 
-    constructor(uint minimum) {
-        address newCompaign = address(new Compaign(minimum, msg.sender));
-        deployedCompaigns.push(newCompaign);
+    function createCampaign(uint minimum) public {
+        address newCampaign = new Campaign(minimum, msg.sender);
+        deployedCampaigns.push(newCampaign);
     }
 
-    function getDeployedCompaigns() public view returns (address[] memory) {
-        return deployedCompaigns;
+    function getDeployedCampaigns() public view returns (address[]) {
+        return deployedCampaigns;
     }
 }
 
-contract Compaign {
+contract Campaign {
     struct Request {
         string description;
         uint value;
-        address payable vendor;
+        address vendor;
         bool complete;
-        uint yesVoterCount;
+        uint yesVotersCount;
         mapping(address => bool) yesVoters;
     }
 
+    Request[] public requests;
     address public manager;
     uint public minimumContribution;
-    mapping(address => bool) public isContributers;
-    uint public isContributersCount;
-
-    uint numRequests;
-    mapping(uint => Request) public requests;
+    mapping(address => bool) public contributers;
+    uint public contributersCount;
 
     modifier restricted() {
         require(msg.sender == manager);
         _;
     }
 
-    constructor(uint minimum, address creator) {
+    function Campaign(uint minimum, address creator) public {
         manager = creator;
         minimumContribution = minimum;
     }
 
     function contribute() public payable {
         require(msg.value > minimumContribution);
-        isContributers[msg.sender] = true;
-        isContributersCount++;
+
+        contributers[msg.sender] = true;
+        contributersCount++;
     }
 
-    function createRequest(
-        string memory description,
-        uint value,
-        address payable vendor
-    ) public restricted {
-        Request storage newRequest = requests[numRequests++];
-        newRequest.description = description;
-        newRequest.value = value;
-        newRequest.vendor = vendor;
-        newRequest.complete = false;
-        newRequest.yesVoterCount = 0;
+    function createRequest(string description, uint value, address vendor) public restricted {
+        Request memory newRequest = Request({
+           description: description,
+           value: value,
+           vendor: vendor,
+           complete: false,
+           yesVotersCount: 0
+        });
+
+        requests.push(newRequest);
     }
 
-    function acceptRequest(uint index) public {
+    function approveRequest(uint index) public {
         Request storage request = requests[index];
-        require(isContributers[msg.sender]);
+
+        require(contributers[msg.sender]);
         require(!request.yesVoters[msg.sender]);
+
         request.yesVoters[msg.sender] = true;
-        request.yesVoterCount++;
+        request.yesVotersCount++;
     }
 
     function finalizeRequest(uint index) public restricted {
         Request storage request = requests[index];
-        require(request.yesVoterCount > isContributersCount / 2);
+
+        require(request.yesVotersCount > (contributersCount / 2));
         require(!request.complete);
+
         request.vendor.transfer(request.value);
         request.complete = true;
     }
